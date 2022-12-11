@@ -16,7 +16,7 @@ class FakePosition: public Position {
 		// Returns whose turn it is (player 0 or 1)
 		int whose_turn() const override;
 		// Returns vector of possible moves to make
-		vector<Position*> possible_moves() const override;
+		vector<Move*> possible_moves() const override;
 		// Make a move and returns the resulting position
 		Position* make_move(Move* move) const override;
 };

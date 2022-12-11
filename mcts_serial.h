@@ -1,10 +1,15 @@
 #ifndef MCTS_H
 #define MCTS_H
 
+#include <bits/stdc++.h>
+#include <cstdlib>
+#include <unordered_map>
 #include <vector>
 using namespace std;
 
 #include "position.h"
+
+#define UCB_CONSTANT (2)
 
 // Node in computation tree to represent positions
 class MctsNode {
@@ -12,24 +17,26 @@ class MctsNode {
 		Position* pos;
 		int reward;
 		int visits;
-		vector<MctsNode*> children;
-
+		vector<pair<MctsNode*, pair<int, int>>> children;
+		
 	public:
 		MctsNode(Position* p);
 		Position* get_pos();
 		int get_reward();
 		int get_visits();
-		vector<MctsNode*> get_children();
+		vector<pair<MctsNode*, pair<int, int>>> get_children();
 		bool is_leaf();
 		int get_player();
 		void add_child(MctsNode* new_child);
 		void inc_reward(int delta);
 		void inc_visits(int delta);
-		MctsNode* expand();
-		float calc_ucb2_child(MctsNode* child);
+		void expand(unordered_map<Position*, MctsNode*>& pos_map);
+		double calc_ucb2_child(pair<MctsNode*, pair<int, int>> child);
 		MctsNode* select_child();
 		MctsNode* select_first_child();
 };
+
+typedef pair<MctsNode*, pair<int, int>> child_info;
 
 class MctsAgent {
 	public:

@@ -19,7 +19,7 @@ class Position {
 		// Returns whose turn it is (player 0 or 1)
 		virtual int whose_turn() const = 0;
 		// Returns vector of possible moves to make
-		virtual vector<Position*> possible_moves() const = 0;
+		virtual vector<Move*> possible_moves() const = 0;
 		// Make a move and returns the resulting position
 		virtual Position* make_move(Move* move) const = 0;
 };

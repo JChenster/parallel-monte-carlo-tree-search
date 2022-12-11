@@ -15,8 +15,8 @@ int FakePosition::whose_turn() const {
 }
 
 // Returns vector of possible moves to make
-vector<Position*> FakePosition::possible_moves() const {
-	return vector<Position*>();
+vector<Move*> FakePosition::possible_moves() const {
+	return vector<Move*>();
 }
 
 // Make a move and returns the resulting position
