@@ -2,6 +2,7 @@
 #define MCTS_H
 
 #include <bits/stdc++.h>
+#include <chrono>
 #include <cstdlib>
 #include <unordered_map>
 #include <vector>
@@ -38,10 +39,12 @@ class MctsNode {
 
 typedef pair<MctsNode*, pair<int, int>> child_info;
 
-class MctsAgent {
+class MctsAgentSerial {
+	private:
+		unordered_map<Position*, MctsNode*> pos_map;
 	public:
-		MctsAgent();
-		int best_move(Position* p);
+		MctsAgentSerial();
+		Move* best_move(Position* p, double time_limit);
 };
 
 #endif

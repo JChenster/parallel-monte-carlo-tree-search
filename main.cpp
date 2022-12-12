@@ -5,9 +5,9 @@ using namespace std;
 #include "fake.h"
 
 int main() {
-	MctsAgent agent = MctsAgent();
+	MctsAgentSerial agent = MctsAgentSerial();
 	FakePosition pos = FakePosition();
-	cout << agent.best_move(&pos) << endl;
+	cout << agent.best_move(&pos, 5.0) << endl;
 }
 
 
