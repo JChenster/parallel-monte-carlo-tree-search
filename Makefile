@@ -3,7 +3,7 @@ FLAGS=-O2 -std=c++11
 
 BINARIES=connect_four
 
-mcts_serial.o: mcts_serial.cpp mcts_serial.h position.h
+mcts_serial.o: mcts_serial.cpp mcts_serial.h game.h
 	$(CC) $(FLAGS) -c mcts_serial.cpp
 
 connect_four: main.cpp connect_four.cpp connect_four.h mcts_serial.o

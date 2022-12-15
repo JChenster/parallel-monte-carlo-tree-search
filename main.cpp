@@ -6,7 +6,8 @@ using namespace std;
 
 int main() {
 	MctsAgentSerial agent = MctsAgentSerial();
-	ConnectFourPosition pos = ConnectFourPosition();
+	pos_map_t pos_map;
+	ConnectFourPosition pos = ConnectFourPosition(&pos_map);
 	cout << agent.best_move(&pos, 5.0) << endl;
 }
 

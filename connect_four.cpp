@@ -1,5 +1,7 @@
 #include "connect_four.h"
-	
+
+ConnectFourPosition::ConnectFourPosition(pos_map_t* pos_map): pos_map(pos_map) {}
+
 bool ConnectFourPosition::is_terminal() const {
 	return true;
 }
@@ -16,13 +18,15 @@ int ConnectFourPosition::whose_turn() const {
 
 // Returns vector of possible moves to make
 vector<Move*> ConnectFourPosition::possible_moves() const {
-	return vector<Move*>();
+	vector<Move*> v;
+	ConnectFourMove* new_move = new ConnectFourMove(0);
+	v.push_back(new_move);
+	return v;
 }
 
 // Make a move and returns the resulting position
 Position* ConnectFourPosition::make_move(Move* move) const {
-	ConnectFourPosition* new_fp = new ConnectFourPosition();
-	return new_fp;
+	return NULL;
 }
 
 

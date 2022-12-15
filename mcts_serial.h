@@ -8,7 +8,7 @@
 #include <vector>
 using namespace std;
 
-#include "position.h"
+#include "game.h"
 
 #define UCB_CONSTANT (2)
 

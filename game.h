@@ -1,5 +1,5 @@
-#ifndef POSITION_H
-#define POSITION_H
+#ifndef GAME_H
+#define GAME_H
 
 #include <iostream>
 #include <vector>
@@ -22,6 +22,11 @@ class Position {
 		virtual vector<Move*> possible_moves() const = 0;
 		// Make a move and returns the resulting position
 		virtual Position* make_move(Move* move) const = 0;
+};
+
+class Game {
+	public:
+		virtual Position* new_game() const = 0;	
 };
 
 #endif
