@@ -1,14 +1,14 @@
-#ifndef FAKE_H
-#define FAKE_H
+#ifndef CONNECT_FOUR_H
+#define CONNECT_FOUR_H
 
 #include "position.h"
 
-struct FakeMove: public Move {
+struct ConnectFourMove: public Move {
 	int info;
-	FakeMove(int info): info(info) {}
+	ConnectFourMove(int info): info(info) {}
 };
 
-class FakePosition: public Position {
+class ConnectFourPosition: public Position {
 	public:
 		bool is_terminal() const override;
 		// Returns payoff of state (assuming it is terminal)
@@ -22,6 +22,4 @@ class FakePosition: public Position {
 };
 
 #endif
-
-
 

@@ -2,11 +2,11 @@
 using namespace std;
 
 #include "mcts_serial.h"
-#include "fake.h"
+#include "connect_four.h"
 
 int main() {
 	MctsAgentSerial agent = MctsAgentSerial();
-	FakePosition pos = FakePosition();
+	ConnectFourPosition pos = ConnectFourPosition();
 	cout << agent.best_move(&pos, 5.0) << endl;
 }
 

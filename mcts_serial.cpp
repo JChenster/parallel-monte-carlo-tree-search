@@ -118,7 +118,7 @@ Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
 	}
 	
 	long int elapsed = 0;
-	double time_limit_ms = time_limit * 1000;
+	long int time_limit_ms = (long int) (time_limit * 1000);
 	// Continue search algorithm while time_limit is not complete
 	while (elapsed < time_limit_ms) {
 		// Start at base node
