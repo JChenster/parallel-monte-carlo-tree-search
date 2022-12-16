@@ -44,7 +44,7 @@ class ConnectFourPosition: public Position {
 		ConnectFourPosition(unordered_map<vector<int>, ConnectFourPosition*, pos_hash>* pos_map, vector<int> pos_vec);
 		bool is_terminal() override;
 		// Returns payoff of state (assuming it is terminal)
-		int payoff() override;
+		float payoff() override;
 		// Returns whose turn it is (player 0 or 1)
 		int whose_turn() const override;
 		// Returns vector of possible moves to make

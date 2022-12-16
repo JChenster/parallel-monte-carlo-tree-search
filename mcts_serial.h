@@ -15,34 +15,35 @@ using namespace std;
 // Node in computation tree to represent positions
 class MctsNode {
 	private:
-		int reward;
+		float reward;
 		int visits;
 	public:
 		Position* pos;
 		vector<pair<MctsNode*, pair<int, int>>> children;
 		// Functions
 		MctsNode(Position* p);
-		int get_reward();
+		float get_reward();
 		int get_visits();
 		bool is_leaf();
 		int get_player();
 		void add_child(MctsNode* new_child);
-		void inc_reward(int delta);
-		void inc_visits(int delta);
+		void inc_reward(float delta);
+		void inc_visits(float delta);
 		void expand(unordered_map<Position*, MctsNode*>* pos_map);
-		double calc_ucb2_child(pair<MctsNode*, pair<int, int>> child);
+		float calc_ucb2_child(pair<MctsNode*, pair<int, int>> child);
 		MctsNode* select_child();
 		MctsNode* select_first_child();
 };
 
 typedef pair<MctsNode*, pair<int, int>> child_info;
 
-class MctsAgentSerial {
+class MctsAgentSerial: public Agent {
 	private:
 		unordered_map<Position*, MctsNode*> pos_map;
 	public:
 		MctsAgentSerial();
-		Move* best_move(Position* p, double time_limit);
+		Move* best_move(Position* p, float time_limit) override;
+		void reset() override;
 };
 
 #endif

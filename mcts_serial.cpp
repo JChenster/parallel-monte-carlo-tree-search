@@ -8,7 +8,7 @@ using namespace std;
 MctsNode::MctsNode(Position* p): pos(p), reward(0), visits(0), children(vector<child_info>()) {}
 
 // Accessor functions
-int MctsNode::get_reward() {
+float MctsNode::get_reward() {
 	return reward;
 }
 
@@ -24,11 +24,11 @@ void MctsNode::add_child(MctsNode* new_child) {
 	children.push_back(make_pair(new_child, make_pair(0, 0)));
 }
 
-void MctsNode::inc_reward(int delta) {
+void MctsNode::inc_reward(float delta) {
 	reward += delta;
 }
 
-void MctsNode::inc_visits(int delta) {
+void MctsNode::inc_visits(float delta) {
 	visits += delta;
 }
 
@@ -48,15 +48,15 @@ void MctsNode::expand(unordered_map<Position*, MctsNode*>* pos_map) {
 	}
 }
 
-double MctsNode::calc_ucb2_child(child_info child){
+float MctsNode::calc_ucb2_child(child_info child){
 	int edge_visits = child.second.second;
 	MctsNode* child_node = child.first;
 	// If node has never been visited before
 	if (edge_visits == 0 || child_node->get_visits() == 0) {
 		return INFINITY;
 	}
-	double exploit = (double) child_node->get_reward() / (double) child_node->get_visits();
-	double explore = sqrt(UCB_CONSTANT * log(this->get_visits()) / edge_visits);
+	float exploit = (float) child_node->get_reward() / (float) child_node->get_visits();
+	float explore = sqrt(UCB_CONSTANT * log(this->get_visits()) / edge_visits);
 	// Player 0 views results favorably while player 1 wants to negate it
 	if (child_node->pos->whose_turn() == 0) {
 		return exploit + explore;
@@ -67,10 +67,10 @@ double MctsNode::calc_ucb2_child(child_info child){
 // Calculate UCB for each node
 // Return the node that maximizes UCB
 MctsNode* MctsNode::select_child() {
-	double max_ucb = -INFINITY;
+	float max_ucb = -INFINITY;
 	vector<MctsNode*> optimal_children;
 	for (child_info child: this->children) {
-		double child_ucb = this->calc_ucb2_child(child);
+		float child_ucb = this->calc_ucb2_child(child);
 		if (child_ucb == INFINITY) {
 			return child.first;
 		}
@@ -91,12 +91,10 @@ MctsNode* MctsNode::select_first_child() {
 	return this->children[0].first;
 }
 
-MctsAgentSerial::MctsAgentSerial() {
-	cout << "Creating agent" << endl;
-}
+MctsAgentSerial::MctsAgentSerial() {}
 
 // time_limit is in seconds
-Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
+Move* MctsAgentSerial::best_move(Position* p, float time_limit) {
 	auto start = chrono::steady_clock::now(); 
 	
 	// Look up node in search tree or create new one
@@ -177,25 +175,26 @@ Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
 		elapsed = chrono::duration_cast<chrono::milliseconds>(curr - start).count();
 	}
 	cout << "Ran " << iterations << " iterations" << endl;
+	/*
 	cout << "MCTS pos_map size: " << pos_map.size() << endl;
 	for (auto it: pos_map) {
-		//printf("%p: (%d, %d)\n", it.first, it.second->get_reward(), it.second->get_visits());
-		//it.second->pos->print();
+		printf("%p: (%f, %d)\n", it.first, it.second->get_reward(), it.second->get_visits());
+		it.second->pos->print();
 	}
+	*/
 
 	// Choose best action
-	double max_ratio = -INFINITY;
+	float max_ratio = -INFINITY;
 	Move* best_move = NULL;
-	cout << "Choices" << endl;
 	for (Move* move: p->possible_moves()) {
 		Position* next_pos = p->make_move(move);
 		MctsNode* next_node = pos_map.find(next_pos)->second;	
-		printf("%p: (%d, %d)\n", next_node, next_node->get_reward(), next_node->get_visits());
-		move->print();
+		// printf("%p: (%f, %d)\n", next_node, next_node->get_reward(), next_node->get_visits());
+		// move->print();
 		if (next_node->get_visits() == 0) {
 			continue;
 		}
-		double curr_ratio = (double) next_node->get_reward() / (double) next_node->get_visits();
+		float curr_ratio = (float) next_node->get_reward() / (float) next_node->get_visits();
 		// Player 1 wants least number of wins for player 0
 		if (p->whose_turn() == 1) {
 			curr_ratio *= -1.0;
@@ -206,5 +205,13 @@ Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
 		}
 	}
 	return best_move;
+}
+
+void MctsAgentSerial::reset() {
+	for (auto it: pos_map) {
+		// Delete node
+		delete it.second;
+	}
+	pos_map.clear();
 }
 

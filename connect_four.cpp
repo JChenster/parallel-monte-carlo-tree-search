@@ -92,16 +92,16 @@ bool ConnectFourPosition::is_terminal() {
 }
 
 // Returns payoff of state (assuming it is terminal)
-int ConnectFourPosition::payoff() {
+float ConnectFourPosition::payoff() {
 	int check_win = this->check_winner();
 	// Perspective of player 0
 	if (check_win == 0) {
 		return 1;
 	} else if (check_win == 1) {
-		return -1;
+		return 0;
 	}
 	// Tie
-	return 0;
+	return 0.5;
 }
 
 // Returns whose turn it is (player 0 or 1)

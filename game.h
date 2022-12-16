@@ -16,7 +16,7 @@ class Position {
 		// Returns if is terminal state
 		virtual bool is_terminal() = 0;
 		// Returns payoff of state (assuming it is terminal)
-		virtual int payoff() = 0;
+		virtual float payoff() = 0;
 		// Returns whose turn it is (player 0 or 1)
 		virtual int whose_turn() const = 0;
 		// Returns vector of possible moves to make
@@ -31,6 +31,11 @@ class Game {
 		virtual Position* new_game() = 0;	
 };
 
-#endif
+class Agent {
+	public:
+		virtual Move* best_move(Position* pos, float time_limit) = 0; 
+		virtual void reset() = 0;
+};
 
+#endif
 
