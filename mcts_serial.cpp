@@ -8,20 +8,12 @@ using namespace std;
 MctsNode::MctsNode(Position* p): pos(p), reward(0), visits(0), children(vector<child_info>()) {}
 
 // Accessor functions
-Position* MctsNode::get_pos() {
-	return pos;
-}
-
 int MctsNode::get_reward() {
 	return reward;
 }
 
 int MctsNode::get_visits() {
 	return visits;
-}
-
-vector<child_info> MctsNode::get_children() {
-	return children;
 }
 
 bool MctsNode::is_leaf() {
@@ -40,20 +32,19 @@ void MctsNode::inc_visits(int delta) {
 	visits += delta;
 }
 
-void MctsNode::expand(unordered_map<Position*, MctsNode*>& pos_map) {
+void MctsNode::expand(unordered_map<Position*, MctsNode*>* pos_map) {
 	// Get next possible moves
 	vector<Move*> next_moves = pos->possible_moves();
 	for (Move* move: next_moves) {
 		// See subsequent positions and either locate corresponding node already in tree
 		// or insert into tree
 		Position* new_pos = pos->make_move(move);
-		if (pos_map.find(new_pos) == pos_map.end()) {
+		if (pos_map->find(new_pos) == pos_map->end()) {
 			MctsNode* new_child = new MctsNode(new_pos);
-			pos_map.insert(make_pair(new_pos, new_child));
+			pos_map->insert(make_pair(new_pos, new_child));
 		}
 		// Add subsequent node as child of current node
-		this->add_child(pos_map.find(new_pos)->second);
-		// Initialize edge between current node and subsequent node
+		this->add_child(pos_map->find(new_pos)->second);
 	}
 }
 
@@ -67,7 +58,7 @@ double MctsNode::calc_ucb2_child(child_info child){
 	double exploit = (double) child_node->get_reward() / (double) child_node->get_visits();
 	double explore = sqrt(UCB_CONSTANT * log(this->get_visits()) / edge_visits);
 	// Player 0 views results favorably while player 1 wants to negate it
-	if (child_node->get_pos()->whose_turn() == 0) {
+	if (child_node->pos->whose_turn() == 0) {
 		return exploit + explore;
 	} 
 	return -1.0 * exploit + explore;
@@ -78,7 +69,7 @@ double MctsNode::calc_ucb2_child(child_info child){
 MctsNode* MctsNode::select_child() {
 	double max_ucb = -INFINITY;
 	vector<MctsNode*> optimal_children;
-	for (child_info child: this->get_children()) {
+	for (child_info child: this->children) {
 		double child_ucb = this->calc_ucb2_child(child);
 		if (child_ucb == INFINITY) {
 			return child.first;
@@ -97,7 +88,7 @@ MctsNode* MctsNode::select_child() {
 
 // Assumes that caller has at least one child
 MctsNode* MctsNode::select_first_child() {
-	return this->get_children()[0].first;
+	return this->children[0].first;
 }
 
 MctsAgentSerial::MctsAgentSerial() {
@@ -116,7 +107,8 @@ Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
 		pos_node = new MctsNode(p);
 		pos_map.insert(make_pair(p, pos_node));
 	}
-	
+
+	int iterations = 0;
 	long int elapsed = 0;
 	long int time_limit_ms = (long int) (time_limit * 1000);
 	// Continue search algorithm while time_limit is not complete
@@ -134,19 +126,19 @@ Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
 
 		// We have now reached leaf
 		// If game over, we have reached terminal node
-		Position* final_pos = leaf_node->get_pos();
+		Position* final_pos = leaf_node->pos;
 		// If not game over, then we need to expand and rollout
-		if (!leaf_node->get_pos()->is_terminal()) {
+		if (!leaf_node->pos->is_terminal()) {
 			// Get the node to rollout from
 			MctsNode* playout_node;
 			if (leaf_node->get_visits() == 0) {
 				playout_node = leaf_node;
 			} else {
-				leaf_node->expand(pos_map);
+				leaf_node->expand(&pos_map);
 				playout_node = leaf_node->select_first_child();
 				path.push_back(playout_node);
 			}
-			Position* curr_pos = playout_node->get_pos(); 
+			Position* curr_pos = playout_node->pos; 
 			// Rollout
 			while (!curr_pos->is_terminal()) {
 				vector<Move*> poss_moves = curr_pos->possible_moves();
@@ -159,30 +151,47 @@ Move* MctsAgentSerial::best_move(Position* p, double time_limit) {
 		// Back propagate
 		for (int i = 0; i < path.size(); i++) {
 			MctsNode* node = path[i];
-			Position* node_pos = node->get_pos();
+			//printf("Path[%d] = %p\n", i, node);
+			Position* node_pos = node->pos;
 			node->inc_visits(1);
-			if (i != 0) {
-				node->inc_reward(final_pos->payoff());
+			node->inc_reward(final_pos->payoff());
+			// Update edge info
+			if (i != path.size() - 1) {
 				// Update edge reward and visits
-				for (child_info child: node->get_children()) {
-					if (child.first == path[i-1]) {
-						child.second.first += final_pos->payoff();
-						child.second.second += 1;
+				for (int j = 0; j < node->children.size(); j++) {
+					// This is the edge we traversed
+					if (node->children[j].first == path[i+1]) {
+						node->children[j].second.first += final_pos->payoff();
+						node->children[j].second.second += 1;
+						break;
 					}
 				}
 			}
 		}
 
+		// Indicator of speed
+		iterations++;
+
+		// Update elapsed time
 		auto curr = chrono::steady_clock::now();
 		elapsed = chrono::duration_cast<chrono::milliseconds>(curr - start).count();
+	}
+	cout << "Ran " << iterations << " iterations" << endl;
+	cout << "MCTS pos_map size: " << pos_map.size() << endl;
+	for (auto it: pos_map) {
+		//printf("%p: (%d, %d)\n", it.first, it.second->get_reward(), it.second->get_visits());
+		//it.second->pos->print();
 	}
 
 	// Choose best action
 	double max_ratio = -INFINITY;
 	Move* best_move = NULL;
+	cout << "Choices" << endl;
 	for (Move* move: p->possible_moves()) {
 		Position* next_pos = p->make_move(move);
-		MctsNode* next_node = pos_map.find(next_pos)->second;
+		MctsNode* next_node = pos_map.find(next_pos)->second;	
+		printf("%p: (%d, %d)\n", next_node, next_node->get_reward(), next_node->get_visits());
+		move->print();
 		if (next_node->get_visits() == 0) {
 			continue;
 		}

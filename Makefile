@@ -1,5 +1,5 @@
 CC=g++ -fopenmp
-FLAGS=-O2 -std=c++11
+FLAGS=-O2 -std=c++11 -g
 
 BINARIES=connect_four
 

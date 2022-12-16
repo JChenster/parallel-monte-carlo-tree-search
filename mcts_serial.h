@@ -15,23 +15,21 @@ using namespace std;
 // Node in computation tree to represent positions
 class MctsNode {
 	private:
-		Position* pos;
 		int reward;
 		int visits;
-		vector<pair<MctsNode*, pair<int, int>>> children;
-		
 	public:
+		Position* pos;
+		vector<pair<MctsNode*, pair<int, int>>> children;
+		// Functions
 		MctsNode(Position* p);
-		Position* get_pos();
 		int get_reward();
 		int get_visits();
-		vector<pair<MctsNode*, pair<int, int>>> get_children();
 		bool is_leaf();
 		int get_player();
 		void add_child(MctsNode* new_child);
 		void inc_reward(int delta);
 		void inc_visits(int delta);
-		void expand(unordered_map<Position*, MctsNode*>& pos_map);
+		void expand(unordered_map<Position*, MctsNode*>* pos_map);
 		double calc_ucb2_child(pair<MctsNode*, pair<int, int>> child);
 		MctsNode* select_child();
 		MctsNode* select_first_child();
