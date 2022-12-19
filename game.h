@@ -5,8 +5,17 @@
 #include <vector>
 using namespace std;
 
+struct pos_hash {
+	size_t operator()(vector<int> const& pos_vec) const {
+		size_t seed = pos_vec.size();
+		for (int i = 0; i < pos_vec.size(); i++) {
+			seed ^= (0x9e3779b9 * i) + pos_vec[i];
+		}
+		return seed;
+	}
+};
+
 struct Move {
-	virtual ~Move() = default;	
 	virtual void print() = 0;
 };
 
@@ -23,6 +32,8 @@ class Position {
 		virtual vector<Move*> possible_moves() = 0;
 		// Make a move and returns the resulting position
 		virtual Position* make_move(Move* move) = 0;
+		// Need to be able to represent each position as a vector in order to hash it
+		virtual vector<int> get_vec() = 0;
 		virtual void print() = 0;
 };
 
@@ -33,7 +44,7 @@ class Game {
 
 class Agent {
 	public:
-		virtual Move* best_move(Position* pos, float time_limit) = 0; 
+		virtual pair<Move*, int> best_move(Position* pos, float time_limit) = 0; 
 		virtual void reset() = 0;
 };
 

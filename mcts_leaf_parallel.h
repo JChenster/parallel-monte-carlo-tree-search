@@ -1,5 +1,5 @@
-#ifndef MCTS_SERIAL_H
-#define MCTS_SERIAL_H
+#ifndef MCTS_LP_H
+#define MCTS_LP_H
 
 #include <cstdlib>
 #include <unordered_map>
@@ -36,11 +36,11 @@ class MctsNode {
 typedef pair<MctsNode*, pair<float,int>> child_info;
 typedef unordered_map<vector<int>, MctsNode*, pos_hash> pos_map_t;
 
-class MctsAgentSerial: public Agent {
+class MctsAgentLeafParallel: public Agent {
 	private:
 		pos_map_t pos_map;
 	public:
-		MctsAgentSerial();
+		MctsAgentLeafParallel();
 		pair<Move*,int> best_move(Position* p, float time_limit);
 		void reset();
 };

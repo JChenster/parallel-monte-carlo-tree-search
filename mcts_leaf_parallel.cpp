@@ -1,10 +1,14 @@
+#include <omp.h>
+
 #include <cmath>
 #include <iostream>
 #include <vector>
 using namespace std;
 
 #include "timing.h"
-#include "mcts_serial.h"
+#include "mcts_leaf_parallel.h"
+
+#define ROLLOUTS (20)
 
 MctsNode::MctsNode(Position* p): pos(p), reward(0), visits(0), children(vector<child_info>()) {}
 
@@ -22,7 +26,7 @@ bool MctsNode::is_leaf() {
 }
 
 void MctsNode::add_child(MctsNode* new_child) {
-	children.push_back(make_pair(new_child, make_pair(0.0, 0)));
+	children.push_back(make_pair(new_child, make_pair(0, 0)));
 }
 
 void MctsNode::inc_reward(float delta) {
@@ -92,10 +96,10 @@ MctsNode* MctsNode::select_first_child() {
 	return this->children[0].first;
 }
 
-MctsAgentSerial::MctsAgentSerial() {}
+MctsAgentLeafParallel::MctsAgentLeafParallel() {}
 
 // time_limit is in seconds
-pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
+pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) {
 	double wc_time, cpu_time;
 	timing(&wc_time, &cpu_time);
 	double start = wc_time;
@@ -132,6 +136,7 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 		// If game over, we have reached terminal node
 		if (leaf_node->pos->is_terminal()) {
 			rollout_reward = leaf_node->pos->payoff();
+			iterations++;
 		}
 		// If not game over, then we need to expand and rollout
 		else {
@@ -144,19 +149,40 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 				playout_node = leaf_node->select_first_child();
 				path.push_back(playout_node);
 			}
-
+			
+			Position* curr_pos = playout_node->pos; 
+			
+			// ** BEGIN PARALLEL SECTION **
 			// Rollout
-			Position* curr_pos = playout_node->pos; 	
-			while (!curr_pos->is_terminal()) {
-				vector<Move*> poss_moves = curr_pos->possible_moves();
-				Move* next_move = poss_moves[rand() % poss_moves.size()];
-				curr_pos = curr_pos->make_move(next_move);
+			#pragma omp parallel \
+				shared(rollout_reward) \
+				firstprivate(curr_pos) \
+				default(none)
+			{
+				// Parrallelize leaf rollouts here
+				// Do dynamic scheduling because rollout may be different complexity
+				#pragma omp for schedule(dynamic)
+				for (int r = 0; r < ROLLOUTS; r++) {
+					// Rollout
+					while (!curr_pos->is_terminal()) {
+						vector<Move*> poss_moves = curr_pos->possible_moves();
+						Move* next_move = poss_moves[rand() % poss_moves.size()];
+						curr_pos = curr_pos->make_move(next_move);
+					}
+					printf("%d\n", omp_get_thread_num());
+					// Now at terminal state
+					#pragma omp atomic update
+					rollout_reward += 1;
+				}
+				// Wait for all rollouts to finish
+				#pragma omp barrier
 			}
-			// Now at terminal state
-			rollout_reward = curr_pos->payoff();			
+			// ** END PARALLEL SECTION **
+			
+			rollout_visits = ROLLOUTS;
+			// Count multiple rollouts as multiple iterations
+			iterations += ROLLOUTS;
 		}
-
-		iterations++;
 
 		// Back propagate
 		for (int i = 0; i < path.size(); i++) {
@@ -215,7 +241,7 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 	return make_pair(best_move, iterations);
 }
 
-void MctsAgentSerial::reset() {
+void MctsAgentLeafParallel::reset() {
 	for (auto it: pos_map) {
 		// Delete node
 		delete it.second;

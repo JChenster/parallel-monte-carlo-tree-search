@@ -1,3 +1,6 @@
 *.o
-connect_four
+mcts_connect_four
+*.out
+test
+test.cpp
 

@@ -6,16 +6,17 @@ using namespace std;
 #include "game.h"
 #include "mcts_serial.h"
 #include "connect_four.h"
+#include "mcts_leaf_parallel.h"
 
-
-#define TEST_GAMES (100)
+#define TEST_GAMES (1)
 #define EPSILON (0.15)
-#define TIME_LIMIT (1.0)
+#define TIME_LIMIT (0.01)
 
 class RandomAgent: public Agent {
-	Move* best_move(Position* pos, float time_limit) override {
+	pair<Move*,int> best_move(Position* pos, float time_limit) override {
 		vector<Move*> poss_moves = pos->possible_moves();
-		return poss_moves[rand() % poss_moves.size()];
+		Move* rand_move = poss_moves[rand() % poss_moves.size()];
+		return make_pair(rand_move, 0);
 	}
 
 	void reset() override {}
@@ -23,6 +24,8 @@ class RandomAgent: public Agent {
 
 void compare_agents(Game* game, Agent* a1, Agent* a2) {
 	float p0_wins = 0;
+	pair<int, int> a1_iter = make_pair(0, 0);
+	pair<int, int> a2_iter = make_pair(0, 0);
 	for (int i = 0; i < TEST_GAMES; i++) {
 		Position* pos = game->new_game();
 		while (!pos->is_terminal()) {
@@ -31,9 +34,15 @@ void compare_agents(Game* game, Agent* a1, Agent* a2) {
 			if (r < EPSILON) {
 				// Use strategy here
 				if (pos->whose_turn() == 0) {
-					move = a1->best_move(pos, TIME_LIMIT);
+					pair<Move*, int> res = a1->best_move(pos, TIME_LIMIT);
+					move = res.first;
+					a1_iter.first += res.second;
+					a1_iter.second++;
 				} else {
-					move = a2->best_move(pos, TIME_LIMIT);
+					pair<Move*, int> res = a2->best_move(pos, TIME_LIMIT);
+					move = res.first;
+					a2_iter.first += res.second;
+					a2_iter.second++;
 				}
 			} else {
 				// Otherwise random
@@ -50,15 +59,20 @@ void compare_agents(Game* game, Agent* a1, Agent* a2) {
 	}
 	float p0_win_rate = p0_wins / TEST_GAMES;
 	printf("Player 0 win rate across %d games: %f\n", TEST_GAMES, p0_win_rate);
+	float a1_avg_iter = (float) a1_iter.first / a1_iter.second;	
+	float a2_avg_iter = (float) a2_iter.first / a2_iter.second;
+	printf("Agent 1 Average MCTS Iterations: %f\n", a1_avg_iter);
+	printf("Agent 2 Average MCTS Iterations: %f\n", a2_avg_iter);
 }
 
 int main() {
 	ConnectFourGame* connect_four = new ConnectFourGame();
-	MctsAgentSerial* mcts_serial_agent = new MctsAgentSerial();
+	MctsAgentSerial* mcts_agent = new MctsAgentSerial();
+	//MctsAgentLeafParallel* mcts_agent = new MctsAgentLeafParallel();
 	RandomAgent* rand_agent = new RandomAgent();
 	cout << "Player 1: Serial MCTS" << endl;
 	cout << "Player 2: Random" << endl;
 	cout << "Epsilon: " << EPSILON << endl;
-	compare_agents(connect_four, mcts_serial_agent, rand_agent);
+	compare_agents(connect_four, mcts_agent, rand_agent);
 }
 

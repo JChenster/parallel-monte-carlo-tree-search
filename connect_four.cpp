@@ -1,7 +1,7 @@
 #include "connect_four.h"
 
 void ConnectFourMove::print() {
-	cout << "CFMove(" << col << ")" << endl;
+	cout << "ConnectFourMove(" << col << ")" << endl;
 }
 
 // Returns 0 if slot is empty, 1 if has player 0 chip, 2 if has player 1 chip
@@ -9,8 +9,8 @@ int ConnectFourPosition::get_slot(int col, int row) {
 	return (pos_vec[col] & (3 << (2*row))) >> (2*row);
 }
 
-ConnectFourPosition::ConnectFourPosition(pos_map_t* pos_map, vector<int> pos_vec): 
-	pos_map(pos_map), pos_vec(pos_vec) {}
+ConnectFourPosition::ConnectFourPosition(vector<int> pos_vec): 
+	pos_vec(pos_vec) {}
 
 // Returns -1 if no winner
 // Otherwise, 0 or 1 for which player wins
@@ -71,6 +71,11 @@ int ConnectFourPosition::check_winner() {
 	}
 	// No winner
 	return -1;
+}
+
+// Hash function for a position
+vector<int> ConnectFourPosition::get_vec() {
+	return pos_vec;
 }
 
 bool ConnectFourPosition::is_terminal() {
@@ -140,13 +145,8 @@ Position* ConnectFourPosition::make_move(Move* move) {
 		}
 	}
 	new_vec[cfmove->col] = new_val;
-	// Search up in pos_map
-	if (pos_map->find(new_vec) == pos_map->end()) {
-		// Create new position and store it in map
-		ConnectFourPosition* new_pos = new ConnectFourPosition(pos_map, new_vec);
-		pos_map->insert(make_pair(new_vec, new_pos));
-	}
-	return pos_map->find(new_vec)->second;
+	ConnectFourPosition* new_pos = new ConnectFourPosition(new_vec);
+	return new_pos;
 }
 
 void ConnectFourPosition::print() {
@@ -159,26 +159,11 @@ void ConnectFourPosition::print() {
 	}
 }
 
-void ConnectFourPosition::print_pos_map() {
-	for (auto it: *pos_map) {
-		cout << "Key: ";
-		for (int num: it.first) {
-			cout << num << ",";
-		}
-		cout << " Value: " << it.second << endl;
-	}
-}
-
-ConnectFourGame::ConnectFourGame():
-	pos_map(new pos_map_t()) {}
+ConnectFourGame::ConnectFourGame() {}
 
 Position* ConnectFourGame::new_game() {
 	vector<int> new_pos_vec = vector<int> (COLS+1, 0);
-	// Insert initial pos into map if not already there
-	if (pos_map->find(new_pos_vec) == pos_map->end()) {
-		ConnectFourPosition* init_pos = new ConnectFourPosition(pos_map, new_pos_vec);
-		pos_map->insert(make_pair(new_pos_vec, init_pos));
-	}
-	return pos_map->find(new_pos_vec)->second;		
+	ConnectFourPosition* init_pos = new ConnectFourPosition(new_pos_vec);	
+	return init_pos;
 }
 
