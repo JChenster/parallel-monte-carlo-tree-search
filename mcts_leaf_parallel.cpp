@@ -1,4 +1,5 @@
 #include <omp.h>
+#include <time.h>
 
 #include <cmath>
 #include <iostream>
@@ -159,6 +160,8 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 				firstprivate(curr_pos) \
 				default(none)
 			{
+				// Each thread should get its own random seed
+				srand(int(time(NULL)) ^ omp_get_thread_num());
 				// Parrallelize leaf rollouts here
 				// Do dynamic scheduling because rollout may be different complexity
 				#pragma omp for schedule(dynamic)
@@ -174,8 +177,6 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 					#pragma omp atomic update
 					rollout_reward += 1;
 				}
-				// Wait for all rollouts to finish
-				#pragma omp barrier
 			}
 			// ** END PARALLEL SECTION **
 			

@@ -9,6 +9,7 @@ using namespace std;
 #include "mcts_serial.h"
 #include "connect_four.h"
 #include "mcts_leaf_parallel.h"
+#include "mcts_root_parallel.h"
 
 class RandomAgent: public Agent {
 	pair<Move*,int> best_move(Position* pos, float time_limit) override {
@@ -93,6 +94,9 @@ int main(int argc, char* argv[]) {
 		} else if (!strcmp(argv[1+a], "leaf")) {
 			agents[a] = new MctsAgentLeafParallel();
 			cout << "Leaf Parallel MCTS" << endl;
+		} else if (!strcmp(argv[1+a], "root")) {
+			agents[a] = new MctsAgentRootParallel();
+			cout << "Root Parallel MCTS" << endl;
 		} else {
 			cout << "Invalid input: " << argv[1+a];
 			exit(-1);
