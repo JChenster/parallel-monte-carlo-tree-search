@@ -11,34 +11,34 @@ using namespace std;
 #define UCB_CONSTANT (2)
 
 // Node in computation tree to represent positions
-class MctsNode {
+class MctsNodeLeafParallel {
 	private:
 		float reward;
 		int visits;
 	public:
 		Position* pos;
-		vector<pair<MctsNode*, pair<float, int>>> children;
+		vector<pair<MctsNodeLeafParallel*, pair<float, int>>> children;
 		// Functions
-		MctsNode(Position* p);
+		MctsNodeLeafParallel(Position* p);
 		float get_reward();
 		int get_visits();
 		bool is_leaf();
 		int get_player();
-		void add_child(MctsNode* new_child);
+		void add_child(MctsNodeLeafParallel* new_child);
 		void inc_reward(float delta);
 		void inc_visits(float delta);
-		void expand(unordered_map<vector<int>, MctsNode*, pos_hash>* pos_map);
-		float calc_ucb2_child(pair<MctsNode*, pair<float, int>> child);
-		MctsNode* select_child();
-		MctsNode* select_first_child();
+		void expand(unordered_map<vector<int>, MctsNodeLeafParallel*, pos_hash>* pos_map);
+		float calc_ucb2_child(pair<MctsNodeLeafParallel*, pair<float, int>> child);
+		MctsNodeLeafParallel* select_child();
+		MctsNodeLeafParallel* select_first_child();
 };
 
-typedef pair<MctsNode*, pair<float,int>> child_info;
-typedef unordered_map<vector<int>, MctsNode*, pos_hash> pos_map_t;
+typedef pair<MctsNodeLeafParallel*, pair<float,int>> child_info_lp;
+typedef unordered_map<vector<int>, MctsNodeLeafParallel*, pos_hash> pos_map_lp_t;
 
 class MctsAgentLeafParallel: public Agent {
 	private:
-		pos_map_t pos_map;
+		pos_map_lp_t pos_map;
 	public:
 		MctsAgentLeafParallel();
 		pair<Move*,int> best_move(Position* p, float time_limit);

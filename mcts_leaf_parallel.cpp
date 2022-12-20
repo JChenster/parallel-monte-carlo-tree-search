@@ -10,34 +10,34 @@ using namespace std;
 
 #define ROLLOUTS (20)
 
-MctsNode::MctsNode(Position* p): pos(p), reward(0), visits(0), children(vector<child_info>()) {}
+MctsNodeLeafParallel::MctsNodeLeafParallel(Position* p): pos(p), reward(0), visits(0), children(vector<child_info_lp>()) {}
 
 // Accessor functions
-float MctsNode::get_reward() {
+float MctsNodeLeafParallel::get_reward() {
 	return reward;
 }
 
-int MctsNode::get_visits() {
+int MctsNodeLeafParallel::get_visits() {
 	return visits;
 }
 
-bool MctsNode::is_leaf() {
+bool MctsNodeLeafParallel::is_leaf() {
 	return children.empty();
 }
 
-void MctsNode::add_child(MctsNode* new_child) {
+void MctsNodeLeafParallel::add_child(MctsNodeLeafParallel* new_child) {
 	children.push_back(make_pair(new_child, make_pair(0, 0)));
 }
 
-void MctsNode::inc_reward(float delta) {
+void MctsNodeLeafParallel::inc_reward(float delta) {
 	reward += delta;
 }
 
-void MctsNode::inc_visits(float delta) {
+void MctsNodeLeafParallel::inc_visits(float delta) {
 	visits += delta;
 }
 
-void MctsNode::expand(pos_map_t* pos_map) {
+void MctsNodeLeafParallel::expand(pos_map_lp_t* pos_map) {
 	// Get next possible moves
 	vector<Move*> next_moves = pos->possible_moves();
 	for (Move* move: next_moves) {
@@ -45,7 +45,7 @@ void MctsNode::expand(pos_map_t* pos_map) {
 		// or insert into tree
 		Position* new_pos = pos->make_move(move);
 		if (pos_map->find(new_pos->get_vec()) == pos_map->end()) {
-			MctsNode* new_child = new MctsNode(new_pos);
+			MctsNodeLeafParallel* new_child = new MctsNodeLeafParallel(new_pos);
 			pos_map->insert(make_pair(new_pos->get_vec(), new_child));
 		}
 		// Add subsequent node as child of current node
@@ -53,9 +53,9 @@ void MctsNode::expand(pos_map_t* pos_map) {
 	}
 }
 
-float MctsNode::calc_ucb2_child(child_info child){
+float MctsNodeLeafParallel::calc_ucb2_child(child_info_lp child){
 	int edge_visits = child.second.second;
-	MctsNode* child_node = child.first;
+	MctsNodeLeafParallel* child_node = child.first;
 	// If node has never been visited before
 	if (edge_visits == 0 || child_node->get_visits() == 0) {
 		return INFINITY;
@@ -71,10 +71,10 @@ float MctsNode::calc_ucb2_child(child_info child){
 
 // Calculate UCB for each node
 // Return the node that maximizes UCB
-MctsNode* MctsNode::select_child() {
+MctsNodeLeafParallel* MctsNodeLeafParallel::select_child() {
 	float max_ucb = -INFINITY;
-	vector<MctsNode*> optimal_children;
-	for (child_info child: this->children) {
+	vector<MctsNodeLeafParallel*> optimal_children;
+	for (child_info_lp child: this->children) {
 		float child_ucb = this->calc_ucb2_child(child);
 		if (child_ucb == INFINITY) {
 			return child.first;
@@ -92,7 +92,7 @@ MctsNode* MctsNode::select_child() {
 }
 
 // Assumes that caller has at least one child
-MctsNode* MctsNode::select_first_child() {
+MctsNodeLeafParallel* MctsNodeLeafParallel::select_first_child() {
 	return this->children[0].first;
 }
 
@@ -105,11 +105,11 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 	double start = wc_time;
 
 	// Look up node in search tree or create new one
-	MctsNode* pos_node;
+	MctsNodeLeafParallel* pos_node;
 	if (pos_map.find(p->get_vec()) != pos_map.end()) {
 		pos_node = pos_map.find(p->get_vec())->second;
 	} else {
-		pos_node = new MctsNode(p);
+		pos_node = new MctsNodeLeafParallel(p);
 		pos_map.insert(make_pair(p->get_vec(), pos_node));
 	}
 
@@ -118,8 +118,8 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 	// Continue search algorithm while time_limit is not complete
 	while (elapsed < time_limit) {
 		// Start at base node
-		MctsNode* leaf_node = pos_node;
-		vector<MctsNode*> path;
+		MctsNodeLeafParallel* leaf_node = pos_node;
+		vector<MctsNodeLeafParallel*> path;
 		path.push_back(pos_node);
 
 		// Traverse tree until we reach a leaf by picking child with highest UCB
@@ -141,7 +141,7 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 		// If not game over, then we need to expand and rollout
 		else {
 			// Get the node to rollout from
-			MctsNode* playout_node;
+			MctsNodeLeafParallel* playout_node;
 			if (leaf_node->get_visits() == 0) {
 				playout_node = leaf_node;
 			} else {
@@ -169,7 +169,7 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 						Move* next_move = poss_moves[rand() % poss_moves.size()];
 						curr_pos = curr_pos->make_move(next_move);
 					}
-					printf("%d\n", omp_get_thread_num());
+					//printf("%d\n", omp_get_thread_num());
 					// Now at terminal state
 					#pragma omp atomic update
 					rollout_reward += 1;
@@ -186,7 +186,7 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 
 		// Back propagate
 		for (int i = 0; i < path.size(); i++) {
-			MctsNode* node = path[i];
+			MctsNodeLeafParallel* node = path[i];
 			//printf("Path[%d] = %p\n", i, node);
 			Position* node_pos = node->pos;
 			node->inc_visits(rollout_visits);
@@ -222,7 +222,7 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 	Move* best_move = NULL;
 	for (Move* move: p->possible_moves()) {
 		Position* next_pos = p->make_move(move);
-		MctsNode* next_node = pos_map.find(next_pos->get_vec())->second;	
+		MctsNodeLeafParallel* next_node = pos_map.find(next_pos->get_vec())->second;	
 		// printf("%p: (%f, %d)\n", next_node, next_node->get_reward(), next_node->get_visits());
 		// move->print();
 		if (next_node->get_visits() == 0) {

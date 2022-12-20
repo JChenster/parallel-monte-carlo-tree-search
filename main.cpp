@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -7,10 +9,6 @@ using namespace std;
 #include "mcts_serial.h"
 #include "connect_four.h"
 #include "mcts_leaf_parallel.h"
-
-#define TEST_GAMES (1)
-#define EPSILON (0.15)
-#define TIME_LIMIT (0.01)
 
 class RandomAgent: public Agent {
 	pair<Move*,int> best_move(Position* pos, float time_limit) override {
@@ -22,24 +20,24 @@ class RandomAgent: public Agent {
 	void reset() override {}
 };
 
-void compare_agents(Game* game, Agent* a1, Agent* a2) {
+void compare_agents(Game* game, Agent* a1, Agent* a2, int test_games, float epsilon, float time_limit) {
 	float p0_wins = 0;
 	pair<int, int> a1_iter = make_pair(0, 0);
 	pair<int, int> a2_iter = make_pair(0, 0);
-	for (int i = 0; i < TEST_GAMES; i++) {
+	for (int i = 0; i < test_games; i++) {
 		Position* pos = game->new_game();
 		while (!pos->is_terminal()) {
 			float r = (float) rand() / RAND_MAX;
 			Move* move;
-			if (r < EPSILON) {
+			if (r < epsilon) {
 				// Use strategy here
 				if (pos->whose_turn() == 0) {
-					pair<Move*, int> res = a1->best_move(pos, TIME_LIMIT);
+					pair<Move*, int> res = a1->best_move(pos, time_limit);
 					move = res.first;
 					a1_iter.first += res.second;
 					a1_iter.second++;
 				} else {
-					pair<Move*, int> res = a2->best_move(pos, TIME_LIMIT);
+					pair<Move*, int> res = a2->best_move(pos, time_limit);
 					move = res.first;
 					a2_iter.first += res.second;
 					a2_iter.second++;
@@ -57,22 +55,50 @@ void compare_agents(Game* game, Agent* a1, Agent* a2) {
 		a1->reset();
 		a2->reset();
 	}
-	float p0_win_rate = p0_wins / TEST_GAMES;
-	printf("Player 0 win rate across %d games: %f\n", TEST_GAMES, p0_win_rate);
+	float p0_win_rate = p0_wins / test_games;
+	printf("Player 0 win rate across %d games: %f\n", test_games, p0_win_rate);
 	float a1_avg_iter = (float) a1_iter.first / a1_iter.second;	
 	float a2_avg_iter = (float) a2_iter.first / a2_iter.second;
 	printf("Agent 1 Average MCTS Iterations: %f\n", a1_avg_iter);
 	printf("Agent 2 Average MCTS Iterations: %f\n", a2_avg_iter);
 }
 
-int main() {
-	ConnectFourGame* connect_four = new ConnectFourGame();
-	MctsAgentSerial* mcts_agent = new MctsAgentSerial();
-	//MctsAgentLeafParallel* mcts_agent = new MctsAgentLeafParallel();
-	RandomAgent* rand_agent = new RandomAgent();
-	cout << "Player 1: Serial MCTS" << endl;
-	cout << "Player 2: Random" << endl;
-	cout << "Epsilon: " << EPSILON << endl;
-	compare_agents(connect_four, mcts_agent, rand_agent);
+int main(int argc, char* argv[]) {
+	if (argc != 6) {
+		cout << "Usage: <Agent 1> <Agent 2> <Test games> <Epsilon> <Time limit>" << endl;
+		cout << "Valid agents are random, serial, leaf_parallel" << endl;
+		exit(-1);
+	}
+	
+	Game* connect_four = new ConnectFourGame();
+	
+	// Initialize hyper-parameters
+	int test_games = atoi(argv[3]);
+	float epsilon = atof(argv[4]);
+	float time_limit = atof(argv[5]);
+	cout << "Simulating " << test_games << " games" << endl;
+	cout << "Epsilon: " << epsilon << endl;
+	cout << "Time limit for each MCTS run: " << time_limit << endl;
+	
+	// Initialize agents from command line
+	Agent* agents[2];
+	for (int a = 0; a < 2; a++) {
+		cout << "Player " << a << ": ";
+		if (!strcmp(argv[1+a], "random")) {
+			agents[a] = new RandomAgent();
+			cout << "Random" << endl;
+		} else if (!strcmp(argv[1+a], "serial")) {
+			agents[a] = new MctsAgentSerial();
+			cout << "Serial MCTS" << endl;
+		} else if (!strcmp(argv[1+a], "leaf")) {
+			agents[a] = new MctsAgentLeafParallel();
+			cout << "Leaf Parallel MCTS" << endl;
+		} else {
+			cout << "Invalid input: " << argv[1+a];
+			exit(-1);
+		}
+	}
+
+	compare_agents(connect_four, agents[0], agents[1], test_games, epsilon, time_limit);
 }
 

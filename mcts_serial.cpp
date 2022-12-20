@@ -6,34 +6,34 @@ using namespace std;
 #include "timing.h"
 #include "mcts_serial.h"
 
-MctsNode::MctsNode(Position* p): pos(p), reward(0), visits(0), children(vector<child_info>()) {}
+MctsNodeSerial::MctsNodeSerial(Position* p): pos(p), reward(0), visits(0), children(vector<child_info>()) {}
 
 // Accessor functions
-float MctsNode::get_reward() {
+float MctsNodeSerial::get_reward() {
 	return reward;
 }
 
-int MctsNode::get_visits() {
+int MctsNodeSerial::get_visits() {
 	return visits;
 }
 
-bool MctsNode::is_leaf() {
+bool MctsNodeSerial::is_leaf() {
 	return children.empty();
 }
 
-void MctsNode::add_child(MctsNode* new_child) {
+void MctsNodeSerial::add_child(MctsNodeSerial* new_child) {
 	children.push_back(make_pair(new_child, make_pair(0.0, 0)));
 }
 
-void MctsNode::inc_reward(float delta) {
+void MctsNodeSerial::inc_reward(float delta) {
 	reward += delta;
 }
 
-void MctsNode::inc_visits(float delta) {
+void MctsNodeSerial::inc_visits(float delta) {
 	visits += delta;
 }
 
-void MctsNode::expand(pos_map_t* pos_map) {
+void MctsNodeSerial::expand(pos_map_t* pos_map) {
 	// Get next possible moves
 	vector<Move*> next_moves = pos->possible_moves();
 	for (Move* move: next_moves) {
@@ -41,7 +41,7 @@ void MctsNode::expand(pos_map_t* pos_map) {
 		// or insert into tree
 		Position* new_pos = pos->make_move(move);
 		if (pos_map->find(new_pos->get_vec()) == pos_map->end()) {
-			MctsNode* new_child = new MctsNode(new_pos);
+			MctsNodeSerial* new_child = new MctsNodeSerial(new_pos);
 			pos_map->insert(make_pair(new_pos->get_vec(), new_child));
 		}
 		// Add subsequent node as child of current node
@@ -49,9 +49,9 @@ void MctsNode::expand(pos_map_t* pos_map) {
 	}
 }
 
-float MctsNode::calc_ucb2_child(child_info child){
+float MctsNodeSerial::calc_ucb2_child(child_info child){
 	int edge_visits = child.second.second;
-	MctsNode* child_node = child.first;
+	MctsNodeSerial* child_node = child.first;
 	// If node has never been visited before
 	if (edge_visits == 0 || child_node->get_visits() == 0) {
 		return INFINITY;
@@ -67,9 +67,9 @@ float MctsNode::calc_ucb2_child(child_info child){
 
 // Calculate UCB for each node
 // Return the node that maximizes UCB
-MctsNode* MctsNode::select_child() {
+MctsNodeSerial* MctsNodeSerial::select_child() {
 	float max_ucb = -INFINITY;
-	vector<MctsNode*> optimal_children;
+	vector<MctsNodeSerial*> optimal_children;
 	for (child_info child: this->children) {
 		float child_ucb = this->calc_ucb2_child(child);
 		if (child_ucb == INFINITY) {
@@ -88,7 +88,7 @@ MctsNode* MctsNode::select_child() {
 }
 
 // Assumes that caller has at least one child
-MctsNode* MctsNode::select_first_child() {
+MctsNodeSerial* MctsNodeSerial::select_first_child() {
 	return this->children[0].first;
 }
 
@@ -101,11 +101,11 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 	double start = wc_time;
 
 	// Look up node in search tree or create new one
-	MctsNode* pos_node;
+	MctsNodeSerial* pos_node;
 	if (pos_map.find(p->get_vec()) != pos_map.end()) {
 		pos_node = pos_map.find(p->get_vec())->second;
 	} else {
-		pos_node = new MctsNode(p);
+		pos_node = new MctsNodeSerial(p);
 		pos_map.insert(make_pair(p->get_vec(), pos_node));
 	}
 
@@ -114,8 +114,8 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 	// Continue search algorithm while time_limit is not complete
 	while (elapsed < time_limit) {
 		// Start at base node
-		MctsNode* leaf_node = pos_node;
-		vector<MctsNode*> path;
+		MctsNodeSerial* leaf_node = pos_node;
+		vector<MctsNodeSerial*> path;
 		path.push_back(pos_node);
 
 		// Traverse tree until we reach a leaf by picking child with highest UCB
@@ -136,7 +136,7 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 		// If not game over, then we need to expand and rollout
 		else {
 			// Get the node to rollout from
-			MctsNode* playout_node;
+			MctsNodeSerial* playout_node;
 			if (leaf_node->get_visits() == 0) {
 				playout_node = leaf_node;
 			} else {
@@ -160,7 +160,7 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 
 		// Back propagate
 		for (int i = 0; i < path.size(); i++) {
-			MctsNode* node = path[i];
+			MctsNodeSerial* node = path[i];
 			//printf("Path[%d] = %p\n", i, node);
 			Position* node_pos = node->pos;
 			node->inc_visits(rollout_visits);
@@ -196,7 +196,7 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 	Move* best_move = NULL;
 	for (Move* move: p->possible_moves()) {
 		Position* next_pos = p->make_move(move);
-		MctsNode* next_node = pos_map.find(next_pos->get_vec())->second;	
+		MctsNodeSerial* next_node = pos_map.find(next_pos->get_vec())->second;	
 		// printf("%p: (%f, %d)\n", next_node, next_node->get_reward(), next_node->get_visits());
 		// move->print();
 		if (next_node->get_visits() == 0) {

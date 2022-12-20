@@ -16,5 +16,5 @@ mcts_connect_four: main.cpp connect_four.cpp connect_four.h mcts_leaf_parallel.o
 	$(CC) $(FLAGS) -o $@ $^
 
 clean:
-	rm $(BINARIES) *.o *gch
+	rm $(BINARIES) *.o *gch 2> /dev/null
 
