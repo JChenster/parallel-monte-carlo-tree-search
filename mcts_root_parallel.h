@@ -29,7 +29,7 @@ class MctsNodeRootParallel {
 		void inc_visits(float delta);
 		void expand(unordered_map<vector<int>, MctsNodeRootParallel*, pos_hash>* pos_map);
 		float calc_ucb2_child(pair<MctsNodeRootParallel*, pair<float, int>> child);
-		MctsNodeRootParallel* select_child();
+		MctsNodeRootParallel* select_child(unsigned int* seed);
 		MctsNodeRootParallel* select_first_child();
 };
 

@@ -10,6 +10,7 @@ using namespace std;
 #include "connect_four.h"
 #include "mcts_leaf_parallel.h"
 #include "mcts_root_parallel.h"
+#include "mcts_tgm_parallel.h"
 
 class RandomAgent: public Agent {
 	pair<Move*,int> best_move(Position* pos, float time_limit) override {
@@ -67,7 +68,12 @@ void compare_agents(Game* game, Agent* a1, Agent* a2, int test_games, float epsi
 int main(int argc, char* argv[]) {
 	if (argc != 6) {
 		cout << "Usage: <Agent 1> <Agent 2> <Test games> <Epsilon> <Time limit>" << endl;
-		cout << "Valid agents are random, serial, leaf_parallel" << endl;
+		cout << "Valid agents are:" << endl;
+		cout << "\t- random" << endl;
+		cout << "\t- serial" << endl;
+		cout << "\t- leaf (Leaf Rollout Parallelization)" << endl;
+		cout << "\t- tgm (Tree Global Mutex Parallelization)" << endl;
+		cout << "\t- tnm (Tree Node Mutex Parallelization)" << endl;
 		exit(-1);
 	}
 	
@@ -97,6 +103,9 @@ int main(int argc, char* argv[]) {
 		} else if (!strcmp(argv[1+a], "root")) {
 			agents[a] = new MctsAgentRootParallel();
 			cout << "Root Parallel MCTS" << endl;
+		} else if (!strcmp(argv[1+a], "tgm")) {
+			agents[a] = new MctsAgentTgmParallel();
+			cout << "Tree Global Mutex Parallel MCTS" << endl;
 		} else {
 			cout << "Invalid input: " << argv[1+a];
 			exit(-1);

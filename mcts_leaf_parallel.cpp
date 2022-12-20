@@ -1,4 +1,5 @@
 #include <omp.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include <cmath>
@@ -114,6 +115,11 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 		pos_map.insert(make_pair(p->get_vec(), pos_node));
 	}
 
+	unsigned int seeds[ROLLOUTS];
+	for (int i = 0; i < ROLLOUTS; i++) {
+		seeds[i] = i;
+	}
+
 	int iterations = 0;
 	double elapsed = 0.0;
 	// Continue search algorithm while time_limit is not complete
@@ -156,12 +162,10 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 			// ** BEGIN PARALLEL SECTION **
 			// Rollout
 			#pragma omp parallel \
-				shared(rollout_reward) \
+				shared(rollout_reward, seeds) \
 				firstprivate(curr_pos) \
 				default(none)
 			{
-				// Each thread should get its own random seed
-				srand(int(time(NULL)) ^ omp_get_thread_num());
 				// Parrallelize leaf rollouts here
 				// Do dynamic scheduling because rollout may be different complexity
 				#pragma omp for schedule(dynamic)
@@ -169,7 +173,8 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 					// Rollout
 					while (!curr_pos->is_terminal()) {
 						vector<Move*> poss_moves = curr_pos->possible_moves();
-						Move* next_move = poss_moves[rand() % poss_moves.size()];
+						// Generate random number from seed corresponding to rollout number
+						Move* next_move = poss_moves[rand_r(&(seeds[r])) % poss_moves.size()];
 						curr_pos = curr_pos->make_move(next_move);
 					}
 					//printf("%d\n", omp_get_thread_num());
@@ -209,14 +214,7 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 		// Update elapsed time
 		timing(&wc_time, &cpu_time);
 		elapsed = wc_time - start;
-	}
-	/*
-	cout << "MCTS pos_map size: " << pos_map.size() << endl;
-	for (auto it: pos_map) {
-		printf("(%f, %d)\n", it.second->get_reward(), it.second->get_visits());
-		it.second->pos->print();
-	}
-	*/
+	}	
 
 	// Choose best action
 	float max_ratio = -INFINITY;

@@ -15,7 +15,10 @@ mcts_leaf_parallel.o: mcts_leaf_parallel.cpp mcts_leaf_parallel.h game.h
 mcts_root_parallel.o: mcts_root_parallel.cpp mcts_root_parallel.h game.h
 	$(CC) $(FLAGS) -c $<
 
-mcts_connect_four: main.cpp connect_four.cpp connect_four.h mcts_leaf_parallel.o mcts_serial.o timing.o mcts_root_parallel.o
+mcts_tgm_parallel.o: mcts_tgm_parallel.cpp mcts_tgm_parallel.h game.h
+	$(CC) $(FLAGS) -c $<
+
+mcts_connect_four: main.cpp connect_four.cpp connect_four.h mcts_leaf_parallel.o mcts_serial.o timing.o mcts_root_parallel.o mcts_tgm_parallel.o
 	$(CC) $(FLAGS) -o $@ $^
 
 clean:

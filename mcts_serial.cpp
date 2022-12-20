@@ -124,7 +124,6 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 			path.push_back(leaf_node);
 		}
 
-		// Shared variable for rollout reward and visits that all threads access
 		float rollout_reward;
 		int rollout_visits = 1;
 
@@ -183,13 +182,6 @@ pair<Move*,int> MctsAgentSerial::best_move(Position* p, float time_limit) {
 		timing(&wc_time, &cpu_time);
 		elapsed = wc_time - start;
 	}
-	/*
-	cout << "MCTS pos_map size: " << pos_map.size() << endl;
-	for (auto it: pos_map) {
-		printf("(%f, %d)\n", it.second->get_reward(), it.second->get_visits());
-		it.second->pos->print();
-	}
-	*/
 
 	// Choose best action
 	float max_ratio = -INFINITY;
