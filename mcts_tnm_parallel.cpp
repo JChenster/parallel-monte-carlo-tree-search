@@ -7,36 +7,47 @@
 using namespace std;
 
 #include "timing.h"
-#include "mcts_tgm_parallel.h"
+#include "mcts_tnm_parallel.h"
 
-MctsNodeTgmParallel::MctsNodeTgmParallel(Position* p): pos(p), reward(0), visits(0), children(vector<child_info_tgm>()) {}
+MctsNodeTnmParallel::MctsNodeTnmParallel(Position* p): 
+	pos(p), reward(0), visits(0), children(vector<child_info_tnm>()), am_leaf(true) {
+	omp_init_lock(&node_mutex);
+}
+
+void MctsNodeTnmParallel::lock() {
+	omp_set_lock(&node_mutex);
+}
+
+void MctsNodeTnmParallel::unlock() {
+	omp_unset_lock(&node_mutex);
+}
 
 // Accessor functions
-float MctsNodeTgmParallel::get_reward() {
+float MctsNodeTnmParallel::get_reward() {
 	return reward;
 }
 
-int MctsNodeTgmParallel::get_visits() {
+int MctsNodeTnmParallel::get_visits() {
 	return visits;
 }
 
-bool MctsNodeTgmParallel::is_leaf() {
-	return children.empty();
+bool MctsNodeTnmParallel::is_leaf() {
+	return am_leaf;
 }
 
-void MctsNodeTgmParallel::add_child(MctsNodeTgmParallel* new_child) {
+void MctsNodeTnmParallel::add_child(MctsNodeTnmParallel* new_child) {
 	children.push_back(make_pair(new_child, make_pair(0.0, 0)));
 }
 
-void MctsNodeTgmParallel::inc_reward(float delta) {
+void MctsNodeTnmParallel::inc_reward(float delta) {
 	reward += delta;
 }
 
-void MctsNodeTgmParallel::inc_visits(float delta) {
+void MctsNodeTnmParallel::inc_visits(float delta) {
 	visits += delta;
 }
 
-void MctsNodeTgmParallel::expand(pos_map_tgm_t* pos_map) {
+void MctsNodeTnmParallel::expand(pos_map_tnm_t* pos_map) {
 	// Get next possible moves
 	vector<Move*> next_moves = pos->possible_moves();
 	for (Move* move: next_moves) {
@@ -44,37 +55,51 @@ void MctsNodeTgmParallel::expand(pos_map_tgm_t* pos_map) {
 		// or insert into tree
 		Position* new_pos = pos->make_move(move);
 		if (pos_map->find(new_pos->get_vec()) == pos_map->end()) {
-			MctsNodeTgmParallel* new_child = new MctsNodeTgmParallel(new_pos);
+			MctsNodeTnmParallel* new_child = new MctsNodeTnmParallel(new_pos);
 			pos_map->insert(make_pair(new_pos->get_vec(), new_child));
 		}
 		// Add subsequent node as child of current node
 		this->add_child(pos_map->find(new_pos->get_vec())->second);
 	}
+	// Update
+	am_leaf = false;
 }
 
-float MctsNodeTgmParallel::calc_ucb2_child(child_info_tgm child){
-	int edge_visits = child.second.second;
-	MctsNodeTgmParallel* child_node = child.first;
+float MctsNodeTnmParallel::calc_ucb2_child(child_info_tnm child, int parent_visits){
+	int edge_visits = child.second.second;	
+	MctsNodeTnmParallel* child_node = child.first;
+	// Lock child node
+	child_node->lock();
+
 	// If node has never been visited before
 	if (edge_visits == 0 || child_node->get_visits() == 0) {
+		child_node->unlock();	
 		return INFINITY;
 	}
 	float exploit = (float) child_node->get_reward() / (float) child_node->get_visits();
-	float explore = sqrt(UCB_CONSTANT * log(this->get_visits()) / edge_visits);
+	float explore = sqrt(UCB_CONSTANT * log(parent_visits) / edge_visits);
 	// Player 0 views results favorably while player 1 wants to negate it
 	if (child_node->pos->whose_turn() == 0) {
 		return exploit + explore;
-	} 
+	}
+	// Done with child node
+	child_node->unlock();
+
 	return -1.0 * exploit + explore;
 }
 
 // Calculate UCB for each node
 // Return the node that maximizes UCB
-MctsNodeTgmParallel* MctsNodeTgmParallel::select_child(unsigned int* seed) {
+MctsNodeTnmParallel* MctsNodeTnmParallel::select_child(unsigned int* seed) {
 	float max_ucb = -INFINITY;
-	vector<MctsNodeTgmParallel*> optimal_children;
-	for (child_info_tgm child: this->children) {
-		float child_ucb = this->calc_ucb2_child(child);
+	vector<MctsNodeTnmParallel*> optimal_children;
+	this->lock();
+	int my_visits = this->get_visits();
+	vector<child_info_tnm> curr_children = this->children;
+	this->unlock();
+
+	for (child_info_tnm child: curr_children) {
+		float child_ucb = this->calc_ucb2_child(child, my_visits);
 		if (child_ucb == INFINITY) {
 			return child.first;
 		}
@@ -86,31 +111,31 @@ MctsNodeTgmParallel* MctsNodeTgmParallel::select_child(unsigned int* seed) {
 			optimal_children.push_back(child.first);
 		}
 	}
+
 	int rand_idx = rand_r(seed) % optimal_children.size();
 	return optimal_children[rand_idx];
 }
 
 // Assumes that caller has at least one child
-MctsNodeTgmParallel* MctsNodeTgmParallel::select_first_child() {
-	return this->children[0].first;
+MctsNodeTnmParallel* MctsNodeTnmParallel::select_first_child() { 
+	MctsNodeTnmParallel* ret = this->children[0].first;
+	return ret;
 }
 
-MctsAgentTgmParallel::MctsAgentTgmParallel() {
-	omp_init_lock(&tree_mutex);
-}
+MctsAgentTnmParallel::MctsAgentTnmParallel() {}
 
 // time_limit is in seconds
-pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
+pair<Move*,int> MctsAgentTnmParallel::best_move(Position* p, float time_limit) {
 	double wc_time, cpu_time;
 	timing(&wc_time, &cpu_time);
 	double start = wc_time;
 
 	// Look up node in search tree or create new one
-	MctsNodeTgmParallel* pos_node;
+	MctsNodeTnmParallel* pos_node;
 	if (pos_map.find(p->get_vec()) != pos_map.end()) {
 		pos_node = pos_map.find(p->get_vec())->second;
 	} else {
-		pos_node = new MctsNodeTgmParallel(p);
+		pos_node = new MctsNodeTnmParallel(p);
 		pos_map.insert(make_pair(p->get_vec(), pos_node));
 	}
 
@@ -129,12 +154,10 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 		// Continue search algorithm while time_limit is not complete
 		while (elapsed < time_limit) {
 			// Start at base node
-			MctsNodeTgmParallel* leaf_node = pos_node;
-			vector<MctsNodeTgmParallel*> path;
+			MctsNodeTnmParallel* leaf_node = pos_node;
+			vector<MctsNodeTnmParallel*> path;
 			path.push_back(pos_node);
 
-			// Only allow one thread access
-			omp_set_lock(&tree_mutex);
 			// Traverse tree until we reach a leaf by picking child with highest UCB
 			while (!leaf_node->is_leaf()) {
 				leaf_node = leaf_node->select_child(&seed);
@@ -153,7 +176,8 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 			// If not game over, then we need to expand and rollout
 			else {
 				// Get the node to rollout from
-				MctsNodeTgmParallel* playout_node;
+				MctsNodeTnmParallel* playout_node;
+				leaf_node->lock();
 				if (leaf_node->get_visits() == 0) {
 					playout_node = leaf_node;
 				} else {
@@ -161,10 +185,9 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 					playout_node = leaf_node->select_first_child();
 					path.push_back(playout_node);
 				}
+				leaf_node->unlock();
 				curr_pos = playout_node->pos; 	
 			}
-			// Done reading and writing to tree
-			omp_unset_lock(&tree_mutex);
 
 			// Rollout phase can be done without access to tree
 			while (!curr_pos->is_terminal()) {
@@ -176,11 +199,10 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 			rollout_reward = curr_pos->payoff();
 			my_iterations++;
 
-			// Need access to tree again
-			omp_set_lock(&tree_mutex);
 			// Back propagate
 			for (int i = 0; i < path.size(); i++) {
-				MctsNodeTgmParallel* node = path[i];
+				MctsNodeTnmParallel* node = path[i];
+				node->lock();
 				//printf("Path[%d] = %p\n", i, node);
 				Position* node_pos = node->pos;
 				node->inc_visits(rollout_visits);
@@ -197,9 +219,8 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 						}
 					}
 				}
+				node->unlock();
 			}
-			// Done with tree
-			omp_unset_lock(&tree_mutex);
 
 			// Update elapsed time
 			timing(&wc_time, &cpu_time);
@@ -216,7 +237,7 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 	Move* best_move = NULL;
 	for (Move* move: p->possible_moves()) {
 		Position* next_pos = p->make_move(move);
-		MctsNodeTgmParallel* next_node = pos_map.find(next_pos->get_vec())->second;	
+		MctsNodeTnmParallel* next_node = pos_map.find(next_pos->get_vec())->second;	
 		// printf("%p: (%f, %d)\n", next_node, next_node->get_reward(), next_node->get_visits());
 		// move->print();
 		if (next_node->get_visits() == 0) {
@@ -235,7 +256,7 @@ pair<Move*,int> MctsAgentTgmParallel::best_move(Position* p, float time_limit) {
 	return make_pair(best_move, iterations);
 }
 
-void MctsAgentTgmParallel::reset() {
+void MctsAgentTnmParallel::reset() {
 	for (auto it: pos_map) {
 		// Delete node
 		delete it.second;

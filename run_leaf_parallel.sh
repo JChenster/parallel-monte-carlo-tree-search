@@ -25,6 +25,7 @@ EPSILON="0.15"
 TIME_LIMIT="0.5"
 
 echo "Running Test Script for MCTS on Connect Four"
+echo "Threads: $THREADS"
 echo ""
 for (( trial=1; trial <= TRIALS; trial++ ))
 do

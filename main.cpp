@@ -11,6 +11,7 @@ using namespace std;
 #include "mcts_leaf_parallel.h"
 #include "mcts_root_parallel.h"
 #include "mcts_tgm_parallel.h"
+#include "mcts_tnm_parallel.h"
 
 class RandomAgent: public Agent {
 	pair<Move*,int> best_move(Position* pos, float time_limit) override {
@@ -106,6 +107,9 @@ int main(int argc, char* argv[]) {
 		} else if (!strcmp(argv[1+a], "tgm")) {
 			agents[a] = new MctsAgentTgmParallel();
 			cout << "Tree Global Mutex Parallel MCTS" << endl;
+		} else if (!strcmp(argv[1+a], "tnm")) {
+			agents[a] = new MctsAgentTnmParallel();
+			cout << "Tree Node Mutex Parallel MCTS" << endl;
 		} else {
 			cout << "Invalid input: " << argv[1+a];
 			exit(-1);

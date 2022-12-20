@@ -3,4 +3,5 @@ mcts_connect_four
 *.out
 test
 test.cpp
+outputs
 
