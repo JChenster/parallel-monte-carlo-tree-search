@@ -80,11 +80,11 @@ float MctsNodeTnmParallel::calc_ucb2_child(child_info_tnm child, int parent_visi
 	float explore = sqrt(UCB_CONSTANT * log(parent_visits) / edge_visits);
 	// Player 0 views results favorably while player 1 wants to negate it
 	if (child_node->pos->whose_turn() == 0) {
+		child_node->unlock();	
 		return exploit + explore;
 	}
 	// Done with child node
 	child_node->unlock();
-
 	return -1.0 * exploit + explore;
 }
 
