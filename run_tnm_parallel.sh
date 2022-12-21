@@ -12,17 +12,17 @@
 # For OpenMP
 module load intel
 # Set up OpenMP
-THREADS=4
+THREADS=2
 OMP_NUM_THREADS=$THREADS
 
 # Make test program
 PROGRAM=mcts_connect_four
 make $PROGRAM
 
-TRIALS=5
-TEST_GAMES=5
+TRIALS=10
+TEST_GAMES=1
 EPSILON="0.15"
-TIME_LIMIT="0.5"
+TIME_LIMIT="0.01"
 
 echo "Running Test Script for MCTS on Connect Four"
 echo "Threads: $THREADS"

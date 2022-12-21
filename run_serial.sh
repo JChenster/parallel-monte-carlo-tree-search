@@ -17,9 +17,9 @@ PROGRAM=mcts_connect_four
 make $PROGRAM
 
 TRIALS=5
-TEST_GAMES=200
-EPSILON="0.15"
-TIME_LIMIT="0.5"
+TEST_GAMES=1000
+EPSILON="0.1"
+TIME_LIMIT="0.1"
 
 echo "Running Test Script for MCTS on Connect Four"
 echo ""

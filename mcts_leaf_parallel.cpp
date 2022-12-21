@@ -168,7 +168,7 @@ pair<Move*,int> MctsAgentLeafParallel::best_move(Position* p, float time_limit) 
 			{
 				// Parrallelize leaf rollouts here
 				// Do dynamic scheduling because rollout may be different complexity
-				#pragma omp for schedule(dynamic)
+				#pragma omp for schedule(runtime)
 				for (int r = 0; r < ROLLOUTS; r++) {
 					// Rollout
 					while (!curr_pos->is_terminal()) {

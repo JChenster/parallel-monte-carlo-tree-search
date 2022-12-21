@@ -68,7 +68,7 @@ void compare_agents(Game* game, Agent* a1, Agent* a2, int test_games, float epsi
 
 int main(int argc, char* argv[]) {
 	if (argc != 6) {
-		cout << "Usage: <Agent 1> <Agent 2> <Test games> <Epsilon> <Time limit>" << endl;
+		cout << "Usage: ./mcts_connect_four <Agent 1> <Agent 2> <Test games> <Epsilon> <Time limit>" << endl;
 		cout << "Valid agents are:" << endl;
 		cout << "\t- random" << endl;
 		cout << "\t- serial" << endl;

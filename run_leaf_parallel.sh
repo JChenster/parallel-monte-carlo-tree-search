@@ -5,31 +5,36 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --time=4:00:00
-#SBATCH --mem-per-cpu=2G
+#SBATCH --mem-per-cpu=5G
 #SBATCH --job-name=mcts_leaf_parallel
 #SBATCH --output=%x-%j.out
 
 # For OpenMP
 module load intel
-# Set up OpenMP
-THREADS=4
-OMP_NUM_THREADS=$THREADS
+
+export OMP_SCHEDULE="static"
 
 # Make test program
 PROGRAM=mcts_connect_four
 make $PROGRAM
 
-TRIALS=10
-TEST_GAMES=200
-EPSILON="0.15"
-TIME_LIMIT="0.5"
+TRIALS=3
+TEST_GAMES=1000
+EPSILON="0.1"
+TIME_LIMIT="0.1"
 
 echo "Running Test Script for MCTS on Connect Four"
-echo "Threads: $THREADS"
-echo ""
-for (( trial=1; trial <= TRIALS; trial++ ))
+for THREADS in 1 2 4 10 20
 do
-	time "./$PROGRAM" leaf random $TEST_GAMES $EPSILON $TIME_LIMIT
+	export OMP_NUM_THREADS=$THREADS
+	echo "Threads: $THREADS"
+	echo ""
+	for (( trial=1; trial <= TRIALS; trial++ ))
+	do
+		echo "Trial $trial"
+		time "./$PROGRAM" leaf random $TEST_GAMES $EPSILON $TIME_LIMIT
+		echo ""
+	done
 done
 echo "**All done**"
 

@@ -163,6 +163,7 @@ pair<Move*,int> MctsAgentTnmParallel::best_move(Position* p, float time_limit) {
 				leaf_node = leaf_node->select_child(&seed);
 				path.push_back(leaf_node);
 			}
+			printf("thread %d finished traversal\n", omp_get_thread_num());
 
 			float rollout_reward;
 			int rollout_visits = 1;
@@ -188,6 +189,7 @@ pair<Move*,int> MctsAgentTnmParallel::best_move(Position* p, float time_limit) {
 				leaf_node->unlock();
 				curr_pos = playout_node->pos; 	
 			}
+			printf("thread %d finished expansion\n", omp_get_thread_num());
 
 			// Rollout phase can be done without access to tree
 			while (!curr_pos->is_terminal()) {
@@ -198,6 +200,7 @@ pair<Move*,int> MctsAgentTnmParallel::best_move(Position* p, float time_limit) {
 			// Now at terminal state
 			rollout_reward = curr_pos->payoff();
 			my_iterations++;
+			printf("thread %d finished rollout\n", omp_get_thread_num());
 
 			// Back propagate
 			for (int i = 0; i < path.size(); i++) {
@@ -221,7 +224,8 @@ pair<Move*,int> MctsAgentTnmParallel::best_move(Position* p, float time_limit) {
 				}
 				node->unlock();
 			}
-
+			printf("thread %d finished backprop\n", omp_get_thread_num());
+			
 			// Update elapsed time
 			timing(&wc_time, &cpu_time);
 			elapsed = wc_time - start;
@@ -229,6 +233,7 @@ pair<Move*,int> MctsAgentTnmParallel::best_move(Position* p, float time_limit) {
 		#pragma omp atomic update
 		iterations += my_iterations;
 	}
+	cout << "one call to best_move done" << endl;
 
 	// Parallel section finished
 	// Can now serially safely access tree results
